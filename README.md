@@ -16,3 +16,4 @@ Autonomous 4KB Python chess engine built for make.fun's [tiny-chess-01](https://
 ```bash
 python3 main.py
 ```
+
