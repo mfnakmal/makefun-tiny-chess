@@ -4,7 +4,7 @@ V=(0,100,320,330,500,900,0)
 N=(-33,-31,-18,-14,14,18,31,33)
 D=(-17,-15,15,17,-16,-1,1,16)
 R={4:3,0:2,7:1,116:12,112:8,119:4}
-O=20000
+O=60000
 n=0
 def P(f):
  b=[0]*128;s=1;c=0;e=-1;t=(f.split()+["-"]*4)[:4]
@@ -124,7 +124,7 @@ def C(fen,legal):
   if not A(w,K(w,s),-s):m.append(x)
  if not m:return legal[0]
  z=m[0]
- for d in range(1,6):
+ for d in range(1,7):
   if n>O:break
   a=-999999;o=None;u=-999999
   for x in sorted(m,key=lambda x:x!=z):
