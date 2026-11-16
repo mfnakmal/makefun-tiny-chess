@@ -1,56 +1,144 @@
-# tiny-chess-01 autonomous engine (MIT, Fauzan Akmal @mfnakmal)
-import json, os, sys, urllib.request as ur
-
-ENV_URL = os.environ.get("MAKEFUN_ENV_URL") or sys.exit(1)
-
-BOOK = {
-  1: "g1f3 c4d5 f1d3 e1g1 e3e4 e4e5 e5f6 g2g4 c1f4 a2a4 c3b5 d1b1 b5c7 c7e8 d3b5 h2h4 f1d1 b5c6 b1f5 f5d5 c6d5 g1f1 e8g7 f1e2 d1d4 e2f1 f1g1 d4f4 a1e1 e1e7 g1g2 e7e8 d5e6 f4f6 e8f8 h4h5 g2f2 f6f7".split(),
-  2: "c8d7 b8d7 e7e5 d7c5 a7a5 f8e7 e8g8 e5f4 g7g5 f6d7 f7f6 g5h4 g8h8 f8f7 a8c8 c5e6 e6d4 c8c2 c2f2 b7b5 h8g8 d8e8 b5b4 f7g7 h7h5 e8h5 g8f8 g7g4 h5h1 g4g2 g2e2 h1a1 a1h1 h1e1 d7e5 e1f2 f2f3".split(),
-  3: "b2b4 b4b5 c4e2 d2d4 e4e5 f3e5 e5f3 b1c3 f3d4 e2f3 c1e3 b5c6 d4c6 d1a4 e1c1 e3d4 h1e1 h2h4 g2g3 f3g4 e1e3 c3e4 a4c4 d4c3 c4d4 a2a4 d1e1 d4c4 e3e4 c3f6 e4e1 c1d2 c4c5 f6d4 d2d3 c5a5 a5c7 c7f4 f4d6 d6g6 d4c5 d3c4 c5e7 h4h5 c4d5 d5e5 g6g4 e5d5 d5d6 g4d1 d1f3 f3f8".split(),
-  4: "f7f5 e4d6 c6e5 e8f7 f8e7 e7f6 h8e8 f7g8 e8e6 c7c6 g7f6 c6b5 d8e7 d6b5 e6e5 e5b5 e7e5 d7d5 g8f8 e5g3 c8d7 f8e7 e7d6 b7b6 a7a6 a8a6 h7h5 a6a8 a8c8 d7e6 c8c1 c1c3 c3c8 d6e7 c8g8 g8g4 f5f4 g4f4 f4h4 e6f5 f5e4 b6a5 h4g4 h5h4 g4g8 g8a8 e7d6 d6e6 f6f5 e6d7 d7c7 a8a7 c7b6 b6a7 a7b6 b6b5 b5c4 e4c2 c4d4 f5g4 d4e4 d5d4 d4d3 d3d2 d2d1q e4e5 d1d8 e5f5 d8h8".split(),
-  5: "a2a4 c1d2 e2e4 e4e5 f3g5 f2f4 c3d5 d2c3 g5f3 f1e2 a4a5 e1g1 h2h4 b2b3 d4e5 a5b6 c3d4 d4a7 f3d4 b3c4 e2c4 d1c1 d4e6 c4d3 f1c1 c1c6 c6b6 b6b8".split(),
-  6: "f6g4 f7f6 e5d4 d7e5 g4h6 c8g4 e5f3 g4d7 c7c6 a7a6 f8e7 h6f7 e8g8 h7h5 f6f5 f5e4 d8b8 d6d5 b8d8 e7c5 d8h4 h4g3 g3f3 f3g4 g4d7 f7d6 h5h4 a8d8 g7g5 d7h3 h3g3 f8f1 g3h3 h3e3 d5d4 e3e1 d8f8 d6b5 f8b8 g8f8 f8g8 g8f8 f8e8 b5d6 e8e7 e7f6 f6g5 g5f4 f4f3".split(),
-}
-
-def post(path, body):
-  req = ur.Request(ENV_URL + path, data=json.dumps(body).encode(), headers={"content-type": "application/json"})
-  try:
-    with ur.urlopen(req) as res: return json.load(res)
-  except ur.HTTPError as e: sys.exit(e.code)
-
-def choose(fen, legal):
-  rows = fen.split()[0].split("/")
-  board = {}
-  for r, row in enumerate(rows):
-    c = 0
-    for ch in row:
-      if ch.isdigit(): c += int(ch)
-      else:
-        board[chr(97 + c) + str(8 - r)] = ch
-        c += 1
-  V = {'p': 10, 'n': 30, 'b': 30, 'r': 50, 'q': 90, 'k': 900}
-  def val(m):
-    p = board.get(m[2:4])
-    sc = V.get(p.lower(), 0) if p else 0
-    if len(m) == 5: sc += 85
-    if m[2:4] in ("d4", "e4", "d5", "e5"): sc += 3
-    return sc
-  return max(legal, key=val)
-
-def get_move(g):
-  book = BOOK.get(g.get("game"), [])
-  offset = 8 if g.get("colour") == "white" else 9
-  idx = (len(g.get("moves", [])) - offset) // 2
-  if 0 <= idx < len(book):
-    cand = book[idx]
-    if cand in g.get("legal_moves", []): return cand
-  return choose(g["fen"], g.get("legal_moves", []))
-
+import json,os,urllib.request as u
+E=os.environ["MAKEFUN_ENV_URL"]
+V=(0,100,320,330,500,900,0)
+N=(-33,-31,-18,-14,14,18,31,33)
+D=(-17,-15,15,17,-16,-1,1,16)
+R={4:3,0:2,7:1,116:12,112:8,119:4}
+O=20000
+n=0
+def P(f):
+ b=[0]*128;s=1;c=0;e=-1;t=(f.split()+["-"]*4)[:4]
+ for r,w in enumerate(t[0].split("/")):
+  x=0
+  for h in w:
+   if h.isdigit():x+=int(h)
+   else:q="pnbrqk".index(h.lower())+1;b[(7-r)*16+x]=q if h.isupper() else -q;x+=1
+ s=1 if t[1]=="w" else -1
+ c=sum((k in t[2])<<j for j,k in enumerate("KQkq"))
+ if t[3]!="-":e=(int(t[3][1])-1)*16+ord(t[3][0])-97
+ return b,s,c,e
+def A(b,q,s):
+ for o,v in(((-15*s,-17*s),1),(N,2),(D,6)):
+  for d in o:
+   t=q+d
+   if not t&136 and b[t]==v*s:return 1
+ for d in D:
+  t=q+d
+  while not t&136:
+   p=b[t]
+   if p:
+    if p*s>0 and(abs(p)==5 or abs(p)==3+(abs(d) in(1,16))):return 1
+    break
+   t+=d
+ return 0
+def K(b,s):return next((i for i in range(128) if not i&136 and b[i]==6*s),-1)
+def M(b,s,c,e):
+ m=[]
+ for i in range(128):
+  if i&136:continue
+  p=b[i]
+  if not p or p*s<0:continue
+  a=abs(p);r=i>>4;f=i&7
+  if a==1:
+   d=16*s;z=r==6 if s>0 else r==1;t=i+d
+   if not t&136 and not b[t]:
+    m+=([(i,t,q) for q in(5,4,3,2)] if z else [(i,t,0)])
+    if((s>0 and r==1)or(s<0 and r==6)) and b[i+2*d]==0:m.append((i,i+2*d,0))
+   for t in(i+d-1,i+d+1):
+    if t&136:continue
+    if b[t]*s<0 or t==e:m+=([(i,t,q) for q in(5,4,3,2)] if z else [(i,t,0)])
+  elif a in(2,6):
+   for d in(N if a==2 else D):
+    t=i+d
+    if t&136:continue
+    if not b[t] or b[t]*s<0:m.append((i,t,0))
+   if a==6:
+    for kf,kt,rf,bt in((4,6,7,1),(4,2,0,2),(116,118,119,4),(116,114,112,8)):
+     if i==kf and c&bt and b[rf]==4*s and all(not b[x] for x in range(min(kf,rf)+1,max(kf,rf))) and all(not A(b,x,-s)for x in(kf,(kf+kt)//2,kt)):m.append((kf,kt,0))
+  else:
+   for d in(D[:4] if a==3 else D[4:] if a==4 else D):
+    t=i+d
+    while not t&136 and not b[t]:m.append((i,t,0));t+=d
+    if not t&136 and b[t]*s<0:m.append((i,t,0))
+ return m
+def T(b,x,s,c,e):
+ q=b[:];f,t,z=x;p=q[f];q[f]=0
+ if abs(p)==6 and abs(t-f)==2:
+  r=t+1 if t>f else t-2;w=t-1 if t>f else t+1;q[w],q[r]=q[r],0
+ if z:q[t]=z if p>0 else -z
+ else:
+  if abs(p)==1 and not q[t] and(f&7)!=(t&7):q[t-16*s]=0
+  q[t]=p
+ k=c&~R.get(f,0)&~R.get(t,0)
+ return q,-s,k,f+16*s if abs(p)==1 and abs(t-f)>16 else -1
+def L(b,s):
+ y=0
+ for i in range(128):
+  if i&136:continue
+  p=b[i]
+  if not p:continue
+  a=abs(p);r=i>>4;f=i&7;w=r if p>0 else 7-r;g=min(f,7-f)+min(w,7-w)
+  v=V[a]+(0,6*w+8*(2<f<5),7*g,5*g,2*g+12*(w==6),3*g,(10 if w<=1 else -12*w)+6*(1<f<6))[a]
+  y+=v if p>0 else -v
+ return y*s
+def Q(b,s,c,e,a,l,q):
+ global n
+ n+=1
+ if n>O or q<1:return L(b,s)
+ t=L(b,s)
+ if t>=l:return l
+ if t>a:a=t
+ for x in M(b,s,c,e):
+  if not b[x[1]] and not x[2]:continue
+  w,y,z,v=T(b,x,s,c,e)
+  if A(w,K(w,s),-s):continue
+  u=-Q(w,y,z,v,-l,-a,q-1)
+  if u>=l:return l
+  if u>a:a=u
+ return a
+def S(b,s,c,e,d,a,l):
+ global n
+ if d<=0:return Q(b,s,c,e,a,l,6)
+ n+=1
+ if n>O:return L(b,s)
+ m=M(b,s,c,e)
+ m.sort(key=lambda x:abs(b[x[1]])*10-abs(b[x[0]])+900*x[2],reverse=1)
+ h=-999999;g=0
+ for x in m:
+  w,y,z,v=T(b,x,s,c,e)
+  if A(w,K(w,s),-s):continue
+  g+=1
+  u=-S(w,y,z,v,d-1,-l,-a)
+  if u>h:h=u
+  if u>a:a=u
+  if a>=l:break
+ if g==0:return -100000 if A(b,K(b,s),-s) else 0
+ return h
+U=lambda x:chr(97+(x[0]&7))+str((x[0]>>4)+1)+chr(97+(x[1]&7))+str((x[1]>>4)+1)+("qrbn"[5-x[2]] if x[2] else "")
+def C(fen,legal):
+ global n
+ b,s,c,e=P(fen);n=0;m=[]
+ for x in M(b,s,c,e):
+  if U(x) not in legal:continue
+  w,y,z,v=T(b,x,s,c,e)
+  if not A(w,K(w,s),-s):m.append(x)
+ if not m:return legal[0]
+ z=m[0]
+ for d in range(1,6):
+  if n>O:break
+  a=-999999;o=None;u=-999999
+  for x in sorted(m,key=lambda x:x!=z):
+   if n>O:break
+   w,y,j,v=T(b,x,s,c,e)
+   t=-S(w,y,j,v,d-1,-999999,-a)
+   if t>u:u,o=t,x
+   if t>a:a=t
+  if n>O or not o:break
+  z=o
+ return U(z)
+def J(p,o):return json.load(u.urlopen(u.Request(E+p,json.dumps(o).encode(),{"content-type":"application/json"})))
 while True:
-  g = post("/game", {})
-  if g["status"] == "done": break
-  while g["status"] == "your_move":
-    mv = get_move(g)
-    g = post("/move", {"game": g["game"], "move": mv})
-  print(g.get("outcome"), file=sys.stderr)
-print(g, file=sys.stderr)
+ g=J("/game",{})
+ if g["status"]=="done":break
+ while g["status"]=="your_move":
+  g=J("/move",{"game":g["game"],"move":C(g["fen"],g["legal_moves"])})
